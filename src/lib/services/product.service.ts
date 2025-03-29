@@ -1,29 +1,16 @@
 import { BaseService } from './base.service';
-
-export interface Product {
-    product_id: number;
-    sku: string;
-    name: string;
-    description: string;
-    category: string;
-    unit_weight: number;
-    dimensions: {
-        width: number;
-        height: number;
-        length: number;
-    };
-    season: string;
-    gender: string;
-    collection: string;
-    material: string;
-    style: string;
-}
+import { Product } from '@/types/product';
 
 export class ProductService extends BaseService {
     private static readonly endpoint = '/products';
 
     static async getAll() {
         const response = await this.get<Product[]>(this.endpoint);
+        return response.data;
+    }
+
+    static async search(searchTerm: string) {
+        const response = await this.get<Product[]>(`${this.endpoint}?name=ilike.*${searchTerm}*`);
         return response.data;
     }
 
@@ -45,13 +32,8 @@ export class ProductService extends BaseService {
         return response.data;
     }
 
-    static async delete(endpoint: string) {
-        return super.delete(endpoint);
-    }
-
-    static async deleteById(productId: number) {
-        const endpoint = `${this.endpoint}?product_id=eq.${productId}`;
-        return this.delete(endpoint);
+    static async delete(productId: number) {
+        return this.delete(`${this.endpoint}?product_id=eq.${productId}`);
     }
 
     static async checkSkuExists(sku: string): Promise<boolean> {
@@ -59,4 +41,5 @@ export class ProductService extends BaseService {
         return response.data.length > 0;
     }
 }
+
 
