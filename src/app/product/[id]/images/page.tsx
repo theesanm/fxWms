@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import api from '@/lib/api';
+import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface ProductImage {
     product_id: number;
@@ -141,28 +142,32 @@ export default function ProductImagesPage() {
         <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Product Images</h1>
-                    <p className="text-gray-600">Managing images for {productName}</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Product Images</h1>
+                    <p className="text-gray-600 dark:text-gray-400">Managing images for {productName}</p>
                 </div>
                 <Button onClick={() => router.back()}>Back to Product</Button>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
                 <div className="flex items-center gap-4">
                     <input
                         type="file"
                         accept="image/*"
                         onChange={handleFileSelect}
-                        className="block w-full text-sm text-gray-500
+                        className="block w-full text-sm text-gray-500 dark:text-gray-400
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-md file:border-0
                             file:text-sm file:font-semibold
                             file:bg-primary file:text-white
-                            hover:file:bg-primary/90"
+                            hover:file:bg-primary/90
+                            dark:file:bg-primary/80
+                            dark:file:text-gray-100
+                            dark:file:hover:bg-primary/70"
                     />
                     <Button 
                         onClick={handleUpload} 
                         disabled={!selectedFile || isUploading}
+                        className="dark:hover:bg-primary/80"
                     >
                         {isUploading ? 'Uploading...' : 'Upload'}
                     </Button>
@@ -171,7 +176,7 @@ export default function ProductImagesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {images.sort((a, b) => (a.is_primary ? -1 : 1)).map((image) => (
-                    <div key={image.image_url} className="bg-white rounded-lg shadow p-4">
+                    <div key={image.image_url} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                         <div className="relative aspect-square mb-4">
                             <Image
                                 src={image.image_url}
@@ -181,7 +186,7 @@ export default function ProductImagesPage() {
                                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
                             {image.is_primary && (
-                                <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded-md text-sm">
+                                <div className="absolute top-2 right-2 bg-primary text-white dark:bg-primary/80 dark:text-gray-100 px-2 py-1 rounded-md text-sm">
                                     Primary
                                 </div>
                             )}
@@ -192,14 +197,21 @@ export default function ProductImagesPage() {
                                 size="sm"
                                 onClick={() => handleSetPrimary(image.image_url)}
                                 disabled={image.is_primary}
+                                className={cn(
+                                    "dark:text-gray-200",
+                                    image.is_primary 
+                                        ? "dark:bg-primary/80 dark:hover:bg-primary/70" 
+                                        : "dark:border-gray-600 dark:hover:bg-gray-700"
+                                )}
                             >
                                 {image.is_primary ? 'Primary Image' : 'Set as Primary'}
                             </Button>
                             <Button
-                                variant="destructive"
+                                variant="danger"
                                 size="sm"
                                 onClick={() => handleDelete(image.image_url)}
                                 disabled={image.is_primary}
+                                className="dark:bg-red-900 dark:hover:bg-red-800 dark:text-gray-100"
                             >
                                 Delete
                             </Button>
@@ -207,8 +219,16 @@ export default function ProductImagesPage() {
                     </div>
                 ))}
             </div>
+
+            {images.length === 0 && (
+                <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">No images available</p>
+                </div>
+            )}
         </div>
     );
 }
+
+
 
 

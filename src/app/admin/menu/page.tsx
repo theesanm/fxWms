@@ -2,10 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import api from '@/lib/api';  // This is correct for PostgREST
+import api from '@/lib/postgrest';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import MenuDesigner from '@/components/menu/menu-designer';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
 import MenuPreview from '@/components/menu/menu-preview';
 import { Toaster } from 'sonner';
 
@@ -23,7 +33,7 @@ export default function MenuDesignPage() {
 
     const fetchMenuItems = async () => {
         try {
-            const response = await api.get('/rpc/menu_tree'); // This will now go to localhost:3000
+            const response = await api.get('/rpc/menu_tree');
             setMenuItems(response.data);
         } catch (error) {
             toast.error("Failed to load menu items");
@@ -60,7 +70,7 @@ export default function MenuDesignPage() {
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="flex items-center justify-center">
-                    <div className="text-lg">Loading...</div>
+                    <div className="text-lg dark:text-gray-200">Loading...</div>
                 </div>
             </div>
         );
@@ -70,12 +80,12 @@ export default function MenuDesignPage() {
         <DndProvider backend={HTML5Backend}>
             <div className="container mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Menu Designer</h1>
+                    <h1 className="text-2xl font-semibold text-secondary-dark dark:text-gray-100">Menu Designer</h1>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold mb-6 text-gray-800">Menu Structure</h2>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-secondary-medium dark:border-gray-700 p-6">
+                        <h2 className="text-xl font-semibold mb-6 text-secondary-dark dark:text-gray-100">Menu Structure</h2>
                         <MenuDesigner 
                             items={menuItems} 
                             onChange={setMenuItems} 
@@ -84,8 +94,8 @@ export default function MenuDesignPage() {
                         />
                     </div>
                     
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold mb-6 text-gray-800">Preview</h2>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-secondary-medium dark:border-gray-700 p-6">
+                        <h2 className="text-xl font-semibold mb-6 text-secondary-dark dark:text-gray-100">Preview</h2>
                         <MenuPreview items={menuItems.map(item => ({
                             menu_id: item.menu_id,
                             menu_name: item.menu_name,
@@ -100,6 +110,8 @@ export default function MenuDesignPage() {
         </DndProvider>
     );
 }
+
+
 
 
 

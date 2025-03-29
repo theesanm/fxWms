@@ -1,11 +1,11 @@
-'use client';
 import { useState, useEffect } from 'react';
+import { Icons } from './icons';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { createPortal } from 'react-dom';
 import { useAuthStore } from '@/stores/auth.store';
-import api from '@/lib/api';
+import api from '@/lib/postgrest';  // Changed from @/lib/api to @/lib/postgrest
 import { toast } from 'sonner';
 
 interface MenuItem {
@@ -14,6 +14,14 @@ interface MenuItem {
   menu_url: string;
   parent_menu_id: number | null;
   order_index: number;
+  icon?: string;
+}
+
+interface HoveredItem {
+  item: MenuItem;
+  children: MenuItem[];
+  level: number;
+  rect?: DOMRect;
 }
 
 interface SideMenuProps {
@@ -26,6 +34,32 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const { user } = useAuthStore();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [hoveredItem, setHoveredItem] = useState<HoveredItem | null>(null);
+
+  const getIcon = (iconName: string | undefined) => {
+    switch (iconName) {
+      case 'home':
+        return <Icons.home className="h-5 w-5" />;
+      case 'admin':
+        return <Icons.admin className="h-5 w-5" />;
+      case 'product':
+        return <Icons.product className="h-5 w-5" />;
+      case 'warehouse':
+        return <Icons.warehouse className="h-5 w-5" />;
+      case 'zone':
+        return <Icons.zone className="h-5 w-5" />;
+      case 'users':
+        return <Icons.users className="h-5 w-5" />;
+      case 'roles':
+        return <Icons.roles className="h-5 w-5" />;
+      case 'permissions':
+        return <Icons.permissions className="h-5 w-5" />;
+      case 'location':
+        return <Icons.mapPin className="h-5 w-5" />; // Add location icon
+      default:
+        return null;
+    }
+  };
 
   const fetchMenuItems = async () => {
     try {
@@ -35,9 +69,32 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
         menu_name: 'Home',
         menu_url: '/',
         parent_menu_id: null,
-        order_index: 0
+        order_index: 0,
+        icon: 'home'
       };
-      setMenuItems([homeMenuItem, ...response.data]);
+
+      // Add icons to top-level menu items
+      const menuItemsWithIcons = response.data.map((item: MenuItem) => {
+        if (!item.parent_menu_id) {  // Only for top-level items
+          switch (item.menu_name.toLowerCase()) {
+            case 'admin':
+              return { ...item, icon: 'admin' };
+            case 'product':
+              return { ...item, icon: 'product' };
+            case 'warehouse':
+              return { ...item, icon: 'warehouse' };
+            case 'zone':
+              return { ...item, icon: 'zone' };
+            case 'location':
+              return { ...item, icon: 'location' };
+            default:
+              return item;
+          }
+        }
+        return item;
+      });
+
+      setMenuItems([homeMenuItem, ...menuItemsWithIcons]);
     } catch (error) {
       console.error('Failed to load menu items:', error);
       toast.error("Failed to load menu items");
@@ -71,21 +128,37 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
       const hasChildren = menuItems.some(child => child.parent_menu_id === item.menu_id);
       const isExpanded = expandedItems.has(item.menu_id);
       const isActive = pathname === item.menu_url;
+      const childItems = menuItems.filter(child => child.parent_menu_id === item.menu_id);
+      const icon = getIcon(item.icon);
 
       return (
         <div key={item.menu_id} className="relative">
           <Link
             href={item.menu_url}
             className={cn(
-              "flex items-center px-3 py-2 rounded-md transition-colors relative group",
-              isActive ? 'bg-primary text-white' : 'text-secondary-dark hover:bg-secondary-light',
+              "flex items-center px-3 py-2 rounded-md transition-colors",
+              isActive 
+                ? 'bg-primary text-white' 
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700',
               isCollapsed ? "justify-center" : "",
               level > 0 && !isCollapsed && "ml-4"
             )}
             onClick={(e) => {
-              if (hasChildren) {
+              if (hasChildren && !isCollapsed) {
                 e.preventDefault();
                 toggleExpand(item.menu_id);
+              }
+            }}
+            onMouseEnter={(e) => {
+              if (isCollapsed) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setHoveredItem({ item, children: childItems, level, rect });
+              }
+            }}
+            onMouseLeave={(e) => {
+              const relatedTarget = e.relatedTarget as HTMLElement;
+              if (!relatedTarget?.closest('[data-hover-menu]')) {
+                setHoveredItem(null);
               }
             }}
           >
@@ -93,8 +166,16 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
               "flex items-center w-full",
               isCollapsed ? "justify-center" : ""
             )}>
+              {icon && (
+                <span className={cn(
+                  "inline-flex",
+                  !isCollapsed && "mr-2"
+                )}>
+                  {icon}
+                </span>
+              )}
               {hasChildren && !isCollapsed && (
-                <ChevronRight
+                <Icons.chevronRight
                   className={cn(
                     "h-4 w-4 transition-transform mr-2",
                     isExpanded && "transform rotate-90"
@@ -108,15 +189,6 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
                 {item.menu_name}
               </span>
             </span>
-
-            {isCollapsed && (
-              <div className="absolute left-full top-0 ml-2 hidden group-hover:block bg-white border rounded-md shadow-lg z-50 min-w-[200px] py-2">
-                <span className="block px-4 py-2 font-medium text-sm text-gray-500">
-                  {item.menu_name}
-                </span>
-                {hasChildren && renderMenuItems(item.menu_id, 0)}
-              </div>
-            )}
           </Link>
 
           {!isCollapsed && hasChildren && isExpanded && (
@@ -129,24 +201,127 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
     });
   };
 
-  return (
-    <nav className={cn(
-      "relative h-full bg-white border-r border-secondary-medium transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64"
-    )}>
-      <button
-        onClick={() => onCollapse(!isCollapsed)}
-        className="absolute -right-3 top-6 bg-white border border-secondary-medium rounded-full p-1.5 hover:bg-secondary-light"
-      >
-        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </button>
+  const renderHoverMenuItem = (item: MenuItem, level: number = 0) => {
+    const children = menuItems.filter(child => child.parent_menu_id === item.menu_id);
+    const hasChildren = children.length > 0;
+    const icon = getIcon(item.icon);
 
-      <div className="p-4 space-y-1">
-        {renderMenuItems(null)}
+    return (
+      <div
+        key={item.menu_id}
+        className="relative group"
+        onMouseEnter={(e) => {
+          if (hasChildren) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setHoveredItem({ item, children, level, rect });
+          }
+        }}
+      >
+        <Link
+          href={item.menu_url}
+          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+        >
+          {icon && <span className="mr-2">{icon}</span>}
+          <span className="flex-1">{item.menu_name}</span>
+          {hasChildren && (
+            <Icons.chevronRight className="h-4 w-4 ml-2" />
+          )}
+        </Link>
+
+        {hasChildren && hoveredItem?.item.menu_id === item.menu_id && (
+          <div
+            className="absolute left-full top-0 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg py-2 min-w-[200px]"
+            style={{ zIndex: 9999 }}
+          >
+            {children.map(child => renderHoverMenuItem(child, level + 1))}
+          </div>
+        )}
       </div>
-    </nav>
+    );
+  };
+
+  return (
+    <>
+      <nav className={cn(
+        "h-screen transition-all duration-300",
+        "bg-white border-r border-secondary-medium",
+        "dark:bg-gray-800 dark:border-gray-700",
+        isCollapsed ? "w-16" : "w-64",
+        "relative"
+      )}>
+        <button
+          onClick={() => onCollapse(!isCollapsed)}
+          className="absolute -right-3 top-6 bg-white dark:bg-gray-800 border border-secondary-medium dark:border-gray-700 rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          {isCollapsed ? (
+            <Icons.chevronRight className="h-4 w-4" />
+          ) : (
+            <Icons.chevronLeft className="h-4 w-4" />
+          )}
+        </button>
+
+        <div className={cn(
+          "space-y-1 overflow-y-auto",
+          "h-[calc(100vh-3rem)]",
+          "pt-8"
+        )}>
+          {renderMenuItems(null)}
+        </div>
+      </nav>
+
+      {hoveredItem && isCollapsed && typeof window !== 'undefined' && createPortal(
+        <div
+          data-hover-menu
+          className={cn(
+            "fixed bg-white dark:bg-gray-800",
+            "border dark:border-gray-700 rounded-md shadow-lg",
+            "py-2"
+          )}
+          style={{
+            left: (hoveredItem.rect?.right || 0) + 8,
+            top: Math.max(hoveredItem.rect?.top || 0, 40),
+            minWidth: '200px',
+            zIndex: 9999
+          }}
+          onMouseEnter={() => {/* Keep menu visible */}}
+          onMouseLeave={() => {
+            setHoveredItem(null);
+          }}
+        >
+          <div className="px-4 py-2 font-medium text-sm text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+            {hoveredItem.item.menu_name}
+          </div>
+          <div className="mt-1">
+            {hoveredItem.children.map(child => renderHoverMenuItem(child))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -6,12 +6,14 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         'primary': {
           DEFAULT: '#007BFF',
           dark: '#0056B3',
+          light: '#E6F2FF',
         },
         'secondary': {
           DEFAULT: '#6C757D',
@@ -38,6 +40,8 @@ module.exports = {
   },
   plugins: [],
 }
+
+
 
 
 

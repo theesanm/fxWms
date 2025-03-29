@@ -1,18 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   output: 'standalone',
-  images: {
-    remotePatterns: [
+  async rewrites() {
+    return [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3000', // PostgREST server for images
-        pathname: '/images/**',
-      },
-    ],
-  },
+        source: '/api/:path*',
+        destination: process.env.NODE_ENV === 'production'
+          ? `${process.env.POSTGREST_URL}/:path*`  // Production PostgREST URL
+          : 'http://localhost:3000/:path*'  // Development PostgREST URL
+      }
+    ]
+  }
 }
 
 module.exports = nextConfig

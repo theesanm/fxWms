@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import api from '@/lib/api';  // Change this import to use the PostgREST client
+import { Textarea } from '@/components/ui/textarea';
+import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 import { Role } from '@/types/role';
 
@@ -80,40 +81,35 @@ export default function RoleManager() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="container mx-auto p-6 dark:bg-gray-900">
             {/* Form Section */}
-            <div className="bg-white rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">
-                    {editingRole ? 'Edit Role' : 'Create New Role'}
-                </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-secondary-medium dark:border-gray-700 p-6">
+                <h2 className="text-xl font-semibold mb-4 dark:text-gray-100">Add New Role</h2>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid gap-4">
-                        <div>
-                            <Input
-                                {...register('role_name')}
-                                placeholder="Role Name"
-                                className="w-full"
-                            />
-                        </div>
-                        <div>
-                            <Input
-                                {...register('description')}
-                                placeholder="Description"
-                                className="w-full"
-                            />
-                        </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Role Name
+                        </label>
+                        <Input
+                            {...register('role_name')}
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        />
                     </div>
-                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Description
+                        </label>
+                        <Textarea
+                            {...register('description')}
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        />
+                    </div>
                     <div className="flex gap-2">
-                        <Button type="submit" variant="default">
-                            {editingRole ? 'Update Role' : 'Create Role'}
+                        <Button type="submit">
+                            {editingRole ? 'Update' : 'Create'}
                         </Button>
                         {editingRole && (
-                            <Button 
-                                type="button" 
-                                variant="outline" 
-                                onClick={handleCancel}
-                            >
+                            <Button type="button" variant="outline" onClick={handleCancel}>
                                 Cancel
                             </Button>
                         )}
@@ -122,17 +118,21 @@ export default function RoleManager() {
             </div>
 
             {/* Roles List Section */}
-            <div className="bg-white rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Roles</h2>
-                <div className="divide-y divide-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-secondary-medium dark:border-gray-700 p-6 mt-6">
+                <h2 className="text-xl font-semibold mb-4 dark:text-gray-100">Roles</h2>
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {roles.map((role) => (
                         <div 
                             key={role.role_id}
                             className="py-4 flex items-center justify-between"
                         >
                             <div>
-                                <h3 className="text-lg font-medium">{role.role_name}</h3>
-                                <p className="text-gray-600">{role.description}</p>
+                                <h3 className="text-lg font-medium dark:text-gray-200">
+                                    {role.role_name}
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    {role.description}
+                                </p>
                             </div>
                             <div className="flex gap-2">
                                 <Button 
@@ -144,7 +144,7 @@ export default function RoleManager() {
                                 </Button>
                                 <Button 
                                     onClick={() => handleDelete(role.role_id)}
-                                    variant="default"
+                                    variant="danger"
                                     size="sm"
                                 >
                                     Delete
@@ -157,6 +157,10 @@ export default function RoleManager() {
         </div>
     );
 }
+
+
+
+
 
 
 

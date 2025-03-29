@@ -1,4 +1,6 @@
 export interface Warehouse {
   warehouse_id: number;
-  warehouse_name: string;
+  name: string;
+  address: string;
+  phone: string;
 }

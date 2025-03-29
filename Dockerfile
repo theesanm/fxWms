@@ -1,51 +1,32 @@
-# Base image
+# Build stage
 FROM node:18-alpine AS builder
-
-# Set working directory
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
+RUN npm ci
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Production image
+# Production stage
 FROM node:18-alpine AS runner
-
 WORKDIR /app
 
-# Create user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+ENV NODE_ENV=production
+ENV PORT=9000
 
-# Copy necessary files from builder
+# Copy necessary files
+COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Set permissions
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 RUN chown -R nextjs:nodejs /app
-
-# Switch to non-root user
 USER nextjs
 
-# Create images directory and set permissions
-RUN mkdir -p /app/public/images
-RUN chown -R nextjs:nodejs /app/public/images
-
-# Expose port
 EXPOSE 9000
 
-# Set environment variables
-ENV PORT=9000
-ENV HOSTNAME=0.0.0.0
-
-# Start the application
 CMD ["node", "server.js"]
+
+

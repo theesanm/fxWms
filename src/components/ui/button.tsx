@@ -7,17 +7,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-white hover:bg-primary-dark shadow-sm dark:bg-primary dark:text-white dark:hover:bg-primary-dark",
-        outline: "border border-secondary-medium bg-white text-secondary-dark hover:bg-secondary-light dark:border-dark-bg-secondary dark:bg-dark-bg-secondary dark:text-dark-text-primary dark:hover:bg-dark-bg-primary",
-        success: "bg-success text-white hover:bg-success/90 dark:bg-success dark:text-white dark:hover:bg-success/90",
-        warning: "bg-warning text-secondary-dark hover:bg-warning/90 dark:bg-warning dark:text-secondary-dark dark:hover:bg-warning/90",
-        danger: "bg-danger text-white hover:bg-danger/90 dark:bg-danger dark:text-white dark:hover:bg-danger/90",
-        destructive: "bg-danger text-white hover:bg-danger/90 dark:bg-danger dark:text-white dark:hover:bg-danger/90",
+        default: "bg-primary text-white hover:bg-primary-dark shadow-sm dark:bg-primary-dark dark:hover:bg-primary",
+        outline: "border border-secondary-medium bg-white text-secondary-dark hover:bg-secondary-light dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+        success: "bg-success text-white hover:bg-success/90 dark:bg-success/80 dark:hover:bg-success",
+        danger: "bg-danger text-white hover:bg-danger/90 dark:bg-danger/80 dark:hover:bg-danger",
+        ghost: "hover:bg-secondary-light text-secondary-dark dark:text-gray-300 dark:hover:bg-gray-800",
+        link: "text-primary hover:text-primary-dark underline-offset-4 hover:underline dark:text-blue-400 dark:hover:text-blue-300",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 px-3",
-        lg: "h-11 px-8",
+        default: "h-9 px-4 py-2",
+        sm: "h-8 px-3 text-xs",
+        lg: "h-10 px-6",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
@@ -45,6 +46,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
+
+
 
 
 

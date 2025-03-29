@@ -2,79 +2,63 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
-import api from '@/lib/api';
 
 export function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const { setUser } = useAuthStore();
+    const { login, isLoading } = useAuthStore();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        const userData = {
-            username: email.split('@')[0],
-            email: email,
-            password_hash: password,
-            role_id: 1,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-
         try {
-            const response = await api.post('/users', userData);
-            
-            if (response.status === 201) {
-                const { user_id, username, email, role_id } = response.data;
-                const user = { user_id, username, email, role_id };
-                setUser(user);
-            } else {
-                setError('Invalid response from server');
-            }
+            await login(email, password);
         } catch (err: any) {
-            setError('Login failed. Please try again.');
-            console.error('Login error details:', {
-                message: err.message,
-                response: err.response?.data,
-                status: err.response?.status
-            });
+            const errorMessage = err.response?.data?.error || err.message || 'Login failed';
+            setError(errorMessage);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-                <div className="text-red-500 text-sm">{error}</div>
-            )}
-            <div>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    className="w-full p-2 border rounded"
-                    required
-                />
+        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+            <div className="w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Admin Portal</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="text-red-500 text-sm p-2 bg-red-50 dark:bg-red-900/20 rounded">{error}</div>
+                    )}
+                    <div>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Email"
+                            className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Password"
+                            className="w-full p-2 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full bg-primary hover:bg-primary-dark text-white p-2 rounded disabled:opacity-50"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Logging in...' : 'Login'}
+                    </button>
+                </form>
             </div>
-            <div>
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    className="w-full p-2 border rounded"
-                    required
-                />
-            </div>
-            <button
-                type="submit"
-                className="w-full bg-primary text-white p-2 rounded hover:bg-primary-dark"
-            >
-                Login
-            </button>
-        </form>
+        </div>
     );
 }
 

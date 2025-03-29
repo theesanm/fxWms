@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import api from '@/lib/api'; // Use PostgREST client
+import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -42,7 +42,7 @@ interface ProductImage {
     created_at: string;
 }
 
-export default function EditProductsPage() {
+export default function EditProducts() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
@@ -223,270 +223,231 @@ export default function EditProductsPage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Edit Products</h1>
-            </div>
-
-            {/* Search Section */}
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-                <div className="flex gap-4">
-                    <div className="flex-1">
-                        <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-                            Search Products
-                        </label>
-                        <Input
-                            id="search"
-                            placeholder="Search products by name..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && searchProducts()}
-                        />
-                    </div>
-                    <Button onClick={searchProducts} className="self-end">Search</Button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Product List */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-6">Products</h2>
-                    <div className="space-y-4">
-                        {products.length === 0 ? (
-                            <p className="text-gray-500 text-center py-4">No products found</p>
-                        ) : (
-                            products.map((product) => (
-                                <div key={`product-${product.product_id}`} className="border p-4 rounded">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-semibold">{product.name}</h3>
-                                            <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button 
-                                                size="sm" 
-                                                variant="outline" 
-                                                onClick={() => handleSelectProduct(product)}
-                                            >
-                                                Edit
-                                            </Button>
-                                            <Button 
-                                                size="sm" 
-                                                variant="outline" 
-                                                onClick={() => handleDeleteProduct(product.product_id!)}
-                                                className="text-red-600 hover:bg-red-50"
-                                            >
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
+        <div className="space-y-6">
+            <div className="card">
+                <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">Search Products</h2>
+                <div className="flex gap-4 mb-6">
+                    <Input
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search products by name..."
+                        className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                    />
+                    <Button 
+                        onClick={searchProducts}
+                        className="dark:bg-primary-dark dark:hover:bg-primary"
+                    >
+                        Search
+                    </Button>
                 </div>
 
-                {/* Edit Form */}
-                {selectedProduct && (
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold mb-6">Edit Product</h2>
-                        <form onSubmit={productForm.handleSubmit(onProductSubmit)} className="space-y-4">
+                <div className="space-y-4">
+                    {products.map((product) => (
+                        <div 
+                            key={product.product_id} 
+                            className="flex justify-between items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                        >
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-                                <Input {...productForm.register('sku')} />
+                                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                                    {product.name}
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    SKU: {product.sku}
+                                </p>
                             </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                                <Input {...productForm.register('name')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <Textarea {...productForm.register('description')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <Input {...productForm.register('category')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Weight (kg)</label>
-                                <Input {...productForm.register('unit_weight')} type="number" step="0.01" />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Dimensions (cm)</label>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm text-gray-600 mb-1">Width</label>
-                                        <Input {...productForm.register('dimensions.width')} type="number" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm text-gray-600 mb-1">Height</label>
-                                        <Input {...productForm.register('dimensions.height')} type="number" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm text-gray-600 mb-1">Length</label>
-                                        <Input {...productForm.register('dimensions.length')} type="number" />
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Season</label>
-                                <Input {...productForm.register('season')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                                <Input {...productForm.register('gender')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Collection</label>
-                                <Input {...productForm.register('collection')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Material</label>
-                                <Input {...productForm.register('material')} />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
-                                <Input {...productForm.register('style')} />
-                            </div>
-
-                            <Button type="submit" className="w-full">Update Product</Button>
-                        </form>
-
-                        {/* Add Images Section */}
-                        <div className="mt-8 border-t pt-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold">Product Images</h3>
+                            <div className="flex gap-2">
                                 <Button 
-                                    onClick={() => router.push(`/product/${selectedProduct.product_id}/images`)}
                                     variant="outline"
+                                    onClick={() => handleSelectProduct(product)}
+                                    className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
-                                    Manage Images
+                                    Edit
+                                </Button>
+                                <Button 
+                                    variant="danger"
+                                    onClick={() => handleDeleteProduct(product.product_id!)}
+                                    className="dark:bg-red-900 dark:hover:bg-red-800"
+                                >
+                                    Delete
                                 </Button>
                             </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
-                            {productImages.length === 0 ? (
-                                <p className="text-gray-500 text-center py-4">No images available</p>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {productImages.sort((a, b) => (a.is_primary ? -1 : 1)).map((image) => (
-                                        <div key={`image-${image.product_id}-${image.image_url}`} className="relative aspect-square">
-                                            <Image
-                                                src={image.image_url}
-                                                alt={`Product image${image.is_primary ? ' (Primary)' : ''}`}
-                                                fill
-                                                className="object-cover rounded-md"
-                                                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                                            />
-                                            {image.is_primary && (
-                                                <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded-md text-sm">
-                                                    Primary
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+            {selectedProduct && (
+                <div className="card">
+                    <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">Edit Product</h2>
+                    <form onSubmit={productForm.handleSubmit(onProductSubmit)} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                SKU (Stock Keeping Unit)
+                            </label>
+                            <Input
+                                {...productForm.register('sku')}
+                                placeholder="SKU"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
                         </div>
 
-                        {/* Metadata Section */}
-                        <div className="mt-8">
-                            <h3 className="text-lg font-semibold mb-4">Product Metadata</h3>
-                            <form onSubmit={metadataForm.handleSubmit((data) => onMetadataSubmit({
-                                meta_key: data.meta_key,
-                                meta_value: data.meta_value
-                            }))} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta Key</label>
-                                    <Input {...metadataForm.register('meta_key')} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta Value</label>
-                                    <Input {...metadataForm.register('meta_value')} />
-                                </div>
-                                <Button type="submit" className="md:col-span-2">Add Metadata</Button>
-                            </form>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Product Name
+                            </label>
+                            <Input
+                                {...productForm.register('name')}
+                                placeholder="Product Name"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
 
-                            <div className="space-y-4">
-                                {metadata.length === 0 ? (
-                                    <p className="text-gray-500 text-center py-4">No metadata found</p>
-                                ) : (
-                                    metadata.map((meta, index) => (
-                                        <div 
-                                            key={meta.meta_id ? `metadata-${meta.meta_id}` : `metadata-new-${index}`} 
-                                            className="flex justify-between items-center border p-4 rounded"
-                                        >
-                                            <div>
-                                                <p className="font-semibold">{meta.meta_key}</p>
-                                                <p className="text-sm text-gray-600">{meta.meta_value}</p>
-                                            </div>
-                                            <Button 
-                                                size="sm" 
-                                                variant="outline" 
-                                                onClick={() => {
-                                                    const metaId = Number(meta.meta_id);
-                                                    if (!isNaN(metaId)) {
-                                                        handleDeleteMetadata(metaId);
-                                                    } else {
-                                                        toast.error('Invalid metadata ID');
-                                                    }
-                                                }}
-                                                className="text-red-600 hover:bg-red-50"
-                                            >
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    ))
-                                )}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Description
+                            </label>
+                            <Textarea
+                                {...productForm.register('description')}
+                                placeholder="Enter product description"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Category
+                            </label>
+                            <Input
+                                {...productForm.register('category')}
+                                placeholder="Product category"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Unit Weight (kg)
+                            </label>
+                            <Input
+                                {...productForm.register('unit_weight')}
+                                type="number"
+                                step="0.01"
+                                placeholder="Enter weight in kilograms"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Dimensions (cm)
+                            </label>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                        Width
+                                    </label>
+                                    <Input
+                                        {...productForm.register('dimensions.width')}
+                                        type="number"
+                                        step="0.1"
+                                        placeholder="Width"
+                                        className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                        Height
+                                    </label>
+                                    <Input
+                                        {...productForm.register('dimensions.height')}
+                                        type="number"
+                                        step="0.1"
+                                        placeholder="Height"
+                                        className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                        Length
+                                    </label>
+                                    <Input
+                                        {...productForm.register('dimensions.length')}
+                                        type="number"
+                                        step="0.1"
+                                        placeholder="Length"
+                                        className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Season
+                            </label>
+                            <Input
+                                {...productForm.register('season')}
+                                placeholder="e.g., Spring/Summer 2024"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Gender
+                            </label>
+                            <Input
+                                {...productForm.register('gender')}
+                                placeholder="e.g., Men, Women, Unisex"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Collection
+                            </label>
+                            <Input
+                                {...productForm.register('collection')}
+                                placeholder="Collection name"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Material
+                            </label>
+                            <Input
+                                {...productForm.register('material')}
+                                placeholder="e.g., Cotton, Polyester, Leather"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Style
+                            </label>
+                            <Input
+                                {...productForm.register('style')}
+                                placeholder="e.g., Casual, Formal, Sports"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                        </div>
+
+                        <Button 
+                            type="submit"
+                            className="w-full dark:bg-primary-dark dark:hover:bg-primary"
+                        >
+                            Update Product
+                        </Button>
+                    </form>
+                </div>
+            )}
         </div>
     );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

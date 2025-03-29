@@ -26,13 +26,11 @@ export default function MenuPreview({ items }: MenuPreviewProps) {
         setExpandedItems(newExpanded);
     };
 
-    const buildMenuTree = (parentId: number | null = null, level: number = 0): PreviewMenuItem[] => {
+    const buildMenuTree = (parentId: number | null, level: number = 0) => {
         return items
             .filter(item => item.parent_menu_id === parentId)
-            .map(item => ({
-                ...item,
-                level
-            }));
+            .sort((a, b) => (a.level || 0) - (b.level || 0))
+            .map(item => ({ ...item, level }));
     };
 
     const renderMenuItem = (item: PreviewMenuItem) => {
@@ -43,16 +41,16 @@ export default function MenuPreview({ items }: MenuPreviewProps) {
         return (
             <div key={item.menu_id} className="menu-item">
                 <div 
-                    className={`flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer`}
+                    className={`flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer`}
                     style={{ paddingLeft: `${item.level * 1.5 + 0.5}rem` }}
                     onClick={() => toggleItem(item.menu_id)}
                 >
                     {hasChildren && (
-                        <span className="mr-2">
+                        <span className="mr-2 text-secondary-dark dark:text-gray-300">
                             {isExpanded ? '▼' : '▶'}
                         </span>
                     )}
-                    <span className="text-gray-600">{item.menu_name}</span>
+                    <span className="text-secondary-dark dark:text-gray-300">{item.menu_name}</span>
                 </div>
                 
                 {isExpanded && hasChildren && (
@@ -67,10 +65,11 @@ export default function MenuPreview({ items }: MenuPreviewProps) {
     const rootItems = buildMenuTree(null);
 
     return (
-        <div className="menu-preview border rounded-lg p-4">
+        <div className="menu-preview border rounded-lg p-4 border-secondary-medium dark:border-gray-700">
             {rootItems.map(item => renderMenuItem(item))}
         </div>
     );
 }
+
 
 

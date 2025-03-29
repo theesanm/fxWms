@@ -6,9 +6,10 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import api from '@/lib/api'; // Use PostgREST client
+import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 // Define validation schema
 const productSchema = z.object({
@@ -99,6 +100,21 @@ export default function Page() {
                     description: `${data.name} has been updated.`
                 });
             } else {
+                // Try to check if SKU exists first
+                const existingProduct = await api.get(`/products?sku=eq.${data.sku}`);
+                
+                if (existingProduct.data && existingProduct.data.length > 0) {
+                    setError('sku', {
+                        type: 'manual',
+                        message: 'This SKU already exists'
+                    });
+                    toast.error('Duplicate SKU', {
+                        description: 'A product with this SKU already exists'
+                    });
+                    setIsSubmitting(false);
+                    return;
+                }
+
                 await api.post('/products', data);
                 toast.success('Product created successfully', {
                     description: `${data.name} has been added to the catalog.`
@@ -109,18 +125,32 @@ export default function Page() {
             setEditingProduct(null);
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || 'An unexpected error occurred';
-            toast.error('Failed to save product', {
-                description: errorMessage
-            });
             
-            // Handle specific API errors
-            if (error.response?.data?.errors) {
-                error.response.data.errors.forEach((err: any) => {
-                    setError(err.field, {
-                        type: 'manual',
-                        message: err.message
-                    });
+            // Handle specific PostgREST error codes
+            if (error.response?.status === 409 || 
+                (error.response?.data?.code === '23505' || // PostgreSQL unique violation code
+                 errorMessage.includes('unique constraint'))) {
+                setError('sku', {
+                    type: 'manual',
+                    message: 'This SKU already exists'
                 });
+                toast.error('Duplicate SKU', {
+                    description: 'A product with this SKU already exists'
+                });
+            } else {
+                toast.error('Failed to save product', {
+                    description: errorMessage
+                });
+                
+                // Handle other API errors
+                if (error.response?.data?.errors) {
+                    error.response.data.errors.forEach((err: any) => {
+                        setError(err.field, {
+                            type: 'manual',
+                            message: err.message
+                        });
+                    });
+                }
             }
         } finally {
             setIsSubmitting(false);
@@ -171,13 +201,13 @@ export default function Page() {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Product Management</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Product Management</h1>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Product Form */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
                         {editingProduct ? 'Edit Product' : 'Add New Product'}
                     </h2>
                     <form onSubmit={handleSubmit(onProductSubmit)} className="space-y-4">
@@ -185,7 +215,10 @@ export default function Page() {
                             <Input 
                                 {...register('sku')} 
                                 placeholder="SKU" 
-                                className={errors.sku ? 'border-danger' : ''}
+                                className={cn(
+                                    "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                    errors.sku ? 'border-danger' : ''
+                                )}
                             />
                             {errors.sku && (
                                 <p className="text-sm text-danger mt-1">{errors.sku.message}</p>
@@ -196,7 +229,10 @@ export default function Page() {
                             <Input 
                                 {...register('name')} 
                                 placeholder="Name" 
-                                className={errors.name ? 'border-danger' : ''}
+                                className={cn(
+                                    "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                    errors.name ? 'border-danger' : ''
+                                )}
                             />
                             {errors.name && (
                                 <p className="text-sm text-danger mt-1">{errors.name.message}</p>
@@ -206,8 +242,8 @@ export default function Page() {
                         <div>
                             <Textarea 
                                 {...register('description')} 
-                                placeholder="Description" 
-                                className={errors.description ? 'border-danger' : ''}
+                                placeholder="Description"
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                             />
                             {errors.description && (
                                 <p className="text-sm text-danger mt-1">{errors.description.message}</p>
@@ -218,7 +254,7 @@ export default function Page() {
                             <Input 
                                 {...register('category')} 
                                 placeholder="Category" 
-                                className={errors.category ? 'border-danger' : ''}
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                             />
                             {errors.category && (
                                 <p className="text-sm text-danger mt-1">{errors.category.message}</p>
@@ -231,7 +267,10 @@ export default function Page() {
                                 type="number" 
                                 step="0.01" 
                                 placeholder="Unit Weight" 
-                                className={errors.unit_weight ? 'border-danger' : ''}
+                                className={cn(
+                                    "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                    errors.unit_weight ? 'border-danger' : ''
+                                )}
                             />
                             {errors.unit_weight && (
                                 <p className="text-sm text-danger mt-1">{errors.unit_weight.message}</p>
@@ -244,7 +283,10 @@ export default function Page() {
                                     {...register('dimensions.width', { valueAsNumber: true })} 
                                     type="number" 
                                     placeholder="Width" 
-                                    className={errors.dimensions?.width ? 'border-danger' : ''}
+                                    className={cn(
+                                        "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                        errors.dimensions?.width ? 'border-danger' : ''
+                                    )}
                                 />
                                 {errors.dimensions?.width && (
                                     <p className="text-sm text-danger mt-1">{errors.dimensions.width.message}</p>
@@ -255,7 +297,10 @@ export default function Page() {
                                     {...register('dimensions.height', { valueAsNumber: true })} 
                                     type="number" 
                                     placeholder="Height" 
-                                    className={errors.dimensions?.height ? 'border-danger' : ''}
+                                    className={cn(
+                                        "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                        errors.dimensions?.height ? 'border-danger' : ''
+                                    )}
                                 />
                                 {errors.dimensions?.height && (
                                     <p className="text-sm text-danger mt-1">{errors.dimensions.height.message}</p>
@@ -266,7 +311,10 @@ export default function Page() {
                                     {...register('dimensions.length', { valueAsNumber: true })} 
                                     type="number" 
                                     placeholder="Length" 
-                                    className={errors.dimensions?.length ? 'border-danger' : ''}
+                                    className={cn(
+                                        "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                        errors.dimensions?.length ? 'border-danger' : ''
+                                    )}
                                 />
                                 {errors.dimensions?.length && (
                                     <p className="text-sm text-danger mt-1">{errors.dimensions.length.message}</p>
@@ -278,7 +326,10 @@ export default function Page() {
                             <Input 
                                 {...register('season')} 
                                 placeholder="Season" 
-                                className={errors.season ? 'border-danger' : ''}
+                                className={cn(
+                                    "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                    errors.season ? 'border-danger' : ''
+                                )}
                             />
                             {errors.season && (
                                 <p className="text-sm text-danger mt-1">{errors.season.message}</p>
@@ -289,7 +340,10 @@ export default function Page() {
                             <Input 
                                 {...register('gender')} 
                                 placeholder="Gender" 
-                                className={errors.gender ? 'border-danger' : ''}
+                                className={cn(
+                                    "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400",
+                                    errors.gender ? 'border-danger' : ''
+                                )}
                             />
                             {errors.gender && (
                                 <p className="text-sm text-danger mt-1">{errors.gender.message}</p>
@@ -300,7 +354,7 @@ export default function Page() {
                             <Input 
                                 {...register('collection')} 
                                 placeholder="Collection" 
-                                className={errors.collection ? 'border-danger' : ''}
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                             />
                             {errors.collection && (
                                 <p className="text-sm text-danger mt-1">{errors.collection.message}</p>
@@ -311,7 +365,7 @@ export default function Page() {
                             <Input 
                                 {...register('material')} 
                                 placeholder="Material" 
-                                className={errors.material ? 'border-danger' : ''}
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                             />
                             {errors.material && (
                                 <p className="text-sm text-danger mt-1">{errors.material.message}</p>
@@ -322,7 +376,7 @@ export default function Page() {
                             <Input 
                                 {...register('style')} 
                                 placeholder="Style" 
-                                className={errors.style ? 'border-danger' : ''}
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                             />
                             {errors.style && (
                                 <p className="text-sm text-danger mt-1">{errors.style.message}</p>
@@ -340,29 +394,44 @@ export default function Page() {
                 </div>
 
                 {/* Product List */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-6">Products</h2>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">Products</h2>
                     <div className="space-y-4">
                         {products.map((product) => (
-                            <div key={product.product_id} className="flex justify-between items-center border p-4 rounded">
+                            <div key={product.product_id} className="flex justify-between items-center border dark:border-gray-700 p-4 rounded">
                                 <div>
-                                    <h3 className="font-semibold">{product.name}</h3>
-                                    <p className="text-sm text-gray-600">SKU: {product.sku}</p>
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{product.name}</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">SKU: {product.sku}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => {
-                                        setEditingProduct(product);
-                                        reset(product);
-                                    }}>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => {
+                                            setEditingProduct(product);
+                                            reset(product);
+                                        }}
+                                        className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                                    >
                                         Edit
                                     </Button>
-                                    <Button size="sm" variant="danger" onClick={() => handleDeleteProduct(product.product_id!)}>
+                                    <Button 
+                                        size="sm" 
+                                        variant="danger"
+                                        onClick={() => handleDeleteProduct(product.product_id!)}
+                                        className="dark:bg-red-900 dark:hover:bg-red-800"
+                                    >
                                         Delete
                                     </Button>
-                                    <Button size="sm" variant="default" onClick={() => {
-                                        setSelectedProduct(product);
-                                        fetchMetadata(product.product_id!);
-                                    }}>
+                                    <Button 
+                                        size="sm" 
+                                        variant="default" 
+                                        onClick={() => {
+                                            setSelectedProduct(product);
+                                            fetchMetadata(product.product_id!);
+                                        }}
+                                        className="dark:bg-gray-700 dark:hover:bg-gray-600"
+                                    >
                                         Metadata
                                     </Button>
                                     <Button 
@@ -380,13 +449,21 @@ export default function Page() {
 
                 {/* Metadata Section */}
                 {selectedProduct && (
-                    <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
-                        <h2 className="text-xl font-semibold mb-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 lg:col-span-2">
+                        <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
                             Metadata for {selectedProduct.name}
                         </h2>
                         <form onSubmit={metadataForm.handleSubmit(onMetadataSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <Input {...metadataForm.register('meta_key')} placeholder="Meta Key" />
-                            <Input {...metadataForm.register('meta_value')} placeholder="Meta Value" />
+                            <Input 
+                                {...metadataForm.register('meta_key')} 
+                                placeholder="Meta Key" 
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
+                            <Input 
+                                {...metadataForm.register('meta_value')} 
+                                placeholder="Meta Value" 
+                                className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
+                            />
                             <Button type="submit" className="md:col-span-2">Add Metadata</Button>
                         </form>
 
@@ -394,16 +471,17 @@ export default function Page() {
                             {metadata.map((meta) => (
                                 <div 
                                     key={`metadata-${meta.meta_id}`} 
-                                    className="flex justify-between items-center border p-4 rounded"
+                                    className="flex justify-between items-center border dark:border-gray-700 p-4 rounded"
                                 >
                                     <div>
-                                        <p className="font-semibold">{meta.meta_key}</p>
-                                        <p className="text-sm text-gray-600">{meta.meta_value}</p>
+                                        <p className="font-semibold text-gray-900 dark:text-gray-100">{meta.meta_key}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">{meta.meta_value}</p>
                                     </div>
                                     <Button 
                                         size="sm" 
                                         variant="danger" 
                                         onClick={() => handleDeleteMetadata(meta.meta_id)}
+                                        className="dark:bg-red-900 dark:hover:bg-red-800"
                                     >
                                         Delete
                                     </Button>
@@ -416,5 +494,8 @@ export default function Page() {
         </div>
     );
 }
+
+
+
 
 

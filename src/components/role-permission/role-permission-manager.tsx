@@ -9,11 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import api from '@/lib/api';  // Change this import to use the PostgREST client
+import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 import { RolePermission, Role, Permission } from '@/types/role-permission';
 
-export default function RolePermissionManager() {
+export function RolePermissionManager() {
     const [rolePermissions, setRolePermissions] = useState<Array<RolePermission & { role_name: string; permission_name: string }>>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -106,104 +106,112 @@ export default function RolePermissionManager() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-4">
-                <div className="text-lg">Loading...</div>
+                <div className="text-lg dark:text-gray-200">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Form Section */}
-            <div className="bg-white rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Assign Permission to Role</h2>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Role
-                            </label>
-                            <Select
-                                value={selectedRole}
-                                onValueChange={setSelectedRole}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {roles.map((role) => (
-                                        <SelectItem 
-                                            key={role.role_id} 
-                                            value={role.role_id.toString()}
-                                        >
-                                            {role.role_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Permission
-                            </label>
-                            <Select
-                                value={selectedPermission}
-                                onValueChange={setSelectedPermission}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a permission" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {permissions.map((permission) => (
-                                        <SelectItem 
-                                            key={permission.permission_id} 
-                                            value={permission.permission_id.toString()}
-                                        >
-                                            {permission.permission_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    
-                    <div className="flex gap-2 pt-2">
-                        <Button type="submit" variant="default">
-                            Assign Permission
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Role Permissions List Section */}
-            <div className="bg-white rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Role Permissions</h2>
-                <div className="divide-y divide-gray-200">
-                    {rolePermissions.map((rp) => (
-                        <div 
-                            key={`${rp.role_id}-${rp.permission_id}`}
-                            className="py-4 flex items-center justify-between"
-                        >
+        <div className="container mx-auto p-6 dark:bg-gray-900">
+            <div className="space-y-6">
+                {/* Form Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-secondary-medium dark:border-gray-700 p-6">
+                    <h2 className="text-xl font-semibold mb-4 dark:text-gray-100">Assign Permission to Role</h2>
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <h3 className="text-lg font-medium">
-                                    {rp.role_name}
-                                </h3>
-                                <p className="text-gray-600">
-                                    {rp.permission_name}
-                                </p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button 
-                                    onClick={() => handleDelete(rp.role_id, rp.permission_id)}
-                                    variant="destructive"
-                                    size="sm"
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Role
+                                </label>
+                                <Select
+                                    value={selectedRole}
+                                    onValueChange={setSelectedRole}
                                 >
-                                    Remove
-                                </Button>
+                                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                                        {roles.map((role) => (
+                                            <SelectItem 
+                                                key={role.role_id} 
+                                                value={role.role_id.toString()}
+                                                className="dark:text-gray-200 dark:focus:bg-gray-700"
+                                            >
+                                                {role.role_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Permission
+                                </label>
+                                <Select
+                                    value={selectedPermission}
+                                    onValueChange={setSelectedPermission}
+                                >
+                                    <SelectTrigger className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                                        <SelectValue placeholder="Select a permission" />
+                                    </SelectTrigger>
+                                    <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                                        {permissions.map((permission) => (
+                                            <SelectItem 
+                                                key={permission.permission_id} 
+                                                value={permission.permission_id.toString()}
+                                                className="dark:text-gray-200 dark:focus:bg-gray-700"
+                                            >
+                                                {permission.permission_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                    ))}
+                        
+                        <div className="flex gap-2 pt-2">
+                            <Button type="submit" variant="default">
+                                Assign Permission
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Role Permissions List Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-secondary-medium dark:border-gray-700 p-6">
+                    <h2 className="text-xl font-semibold mb-4 dark:text-gray-100">Role Permissions</h2>
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {rolePermissions.map((rp) => (
+                            <div 
+                                key={`${rp.role_id}-${rp.permission_id}`}
+                                className="py-4 flex items-center justify-between"
+                            >
+                                <div>
+                                    <h3 className="text-lg font-medium dark:text-gray-200">
+                                        {rp.role_name}
+                                    </h3>
+                                    <p className="text-gray-600 dark:text-gray-400">
+                                        {rp.permission_name}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        onClick={() => handleDelete(rp.role_id, rp.permission_id)}
+                                        variant="danger"
+                                        size="sm"
+                                    >
+                                        Remove
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+
+
+
+

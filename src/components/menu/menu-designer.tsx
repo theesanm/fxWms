@@ -11,7 +11,7 @@ import {
     SelectValue,
     SelectGroup 
 } from '@/components/ui/select';
-import api from '@/lib/api';
+import api from '@/lib/postgrest';  // Updated from @/lib/api
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -108,66 +108,50 @@ export default function MenuDesigner({ items, onChange, onSave, fetchMenuItems }
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Menu Name
                         </label>
                         <Input 
-                            {...register('menu_name', { required: 'Menu name is required' })} 
-                            placeholder="Enter menu name" 
+                            {...register('menu_name')} 
+                            placeholder="Enter menu name"
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                         />
-                        {errors.menu_name && (
-                            <span className="text-red-500 text-sm">{errors.menu_name.message}</span>
-                        )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Menu URL
                         </label>
                         <Input 
-                            {...register('menu_url', { required: 'URL is required' })} 
-                            placeholder="Enter menu URL (e.g., /dashboard)" 
+                            {...register('menu_url')} 
+                            placeholder="Enter menu URL"
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                         />
-                        {errors.menu_url && (
-                            <span className="text-red-500 text-sm">{errors.menu_url.message}</span>
-                        )}
                     </div>
 
-                    <div className="relative">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Parent Menu
                         </label>
                         <Select 
                             onValueChange={handleParentMenuChange}
-                            defaultValue={editingMenu?.parent_menu_id?.toString() || "null"}
+                            defaultValue="null"
                         >
-                            <SelectTrigger className="w-full bg-white">
-                                <SelectValue placeholder="Select parent menu (optional)" />
+                            <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                                <SelectValue placeholder="Select parent menu" />
                             </SelectTrigger>
                             <SelectContent 
-                                position="popper" 
-                                side="bottom"
-                                align="start"
-                                sideOffset={4}
-                                className={cn(
-                                    "!z-[99999]",
-                                    "data-[side=bottom]:slide-in-from-top-2",
-                                    "data-[side=top]:slide-in-from-top-2"
-                                )}
-                                style={{ 
-                                    position: 'relative',
-                                    zIndex: 99999,
-                                }}
+                                className="dark:bg-gray-800 dark:border-gray-700"
                                 avoidCollisions={false}
                             >
                                 <SelectGroup>
-                                    <SelectItem value="null">None</SelectItem>
+                                    <SelectItem value="null" className="dark:text-gray-200">None</SelectItem>
                                     {items.map((menu) => (
                                         <SelectItem 
                                             key={menu.menu_id} 
                                             value={menu.menu_id.toString()}
                                             disabled={editingMenu?.menu_id === menu.menu_id}
-                                            className="relative z-[99999]"
+                                            className="relative z-[99999] dark:text-gray-200"
                                         >
                                             {menu.menu_name}
                                         </SelectItem>
@@ -178,7 +162,7 @@ export default function MenuDesigner({ items, onChange, onSave, fetchMenuItems }
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Order Index
                         </label>
                         <Input 
@@ -186,15 +170,15 @@ export default function MenuDesigner({ items, onChange, onSave, fetchMenuItems }
                             placeholder="Enter display order number" 
                             type="number"
                             defaultValue={1}
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                         />
                     </div>
                 </div>
-                
-                <div className="flex gap-2">
-                    <Button type="submit" variant="default">
-                        {editingMenu ? 'Update Menu' : 'Create Menu'}
+
+                <div className="flex space-x-2">
+                    <Button type="submit">
+                        {editingMenu ? 'Update Menu' : 'Add Menu'}
                     </Button>
-                    
                     {editingMenu && (
                         <Button type="button" variant="outline" onClick={handleCancel}>
                             Cancel
@@ -203,25 +187,35 @@ export default function MenuDesigner({ items, onChange, onSave, fetchMenuItems }
                 </div>
             </form>
 
-            <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-semibold mb-4">Menu Items</h3>
+            <div className="border rounded-lg p-4 dark:border-gray-700">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Menu Items</h3>
                 <div className="space-y-2">
                     {items.map((menu) => (
-                        <div key={menu.menu_id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div key={menu.menu_id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
                             <div>
-                                <span className="font-medium">{menu.menu_name}</span>
-                                <span className="text-sm text-gray-500 ml-2">{menu.menu_url}</span>
+                                <span className="font-medium dark:text-gray-200">{menu.menu_name}</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{menu.menu_url}</span>
                                 {menu.parent_menu_id && (
-                                    <span className="text-sm text-gray-500 ml-2">
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
                                         (Parent: {items.find(m => m.menu_id === menu.parent_menu_id)?.menu_name})
                                     </span>
                                 )}
                             </div>
-                            <div className="flex gap-2">
-                                <Button size="sm" variant="outline" onClick={() => handleEdit(menu)}>
+                            <div className="flex space-x-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleEdit(menu)}
+                                    className="dark:border-gray-600 dark:hover:bg-gray-600"
+                                >
                                     Edit
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleDelete(menu.menu_id)}>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleDelete(menu.menu_id)}
+                                    className="text-red-600 dark:text-red-400 dark:border-gray-600 dark:hover:bg-gray-600"
+                                >
                                     Delete
                                 </Button>
                             </div>
@@ -232,6 +226,8 @@ export default function MenuDesigner({ items, onChange, onSave, fetchMenuItems }
         </div>
     );
 }
+
+
 
 
 
