@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/images/[...path]": {},
+    "/api/postgrest/[...path]": {}
+  }
+}
