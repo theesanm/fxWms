@@ -55,7 +55,9 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
       case 'permissions':
         return <Icons.permissions className="h-5 w-5" />;
       case 'location':
-        return <Icons.mapPin className="h-5 w-5" />; // Add location icon
+        return <Icons.mapPin className="h-5 w-5" />;
+      case 'inventory':
+        return <Icons.boxes className="h-5 w-5" />;
       default:
         return null;
     }
@@ -87,6 +89,8 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
               return { ...item, icon: 'zone' };
             case 'location':
               return { ...item, icon: 'location' };
+            case 'inventory':
+              return { ...item, icon: 'inventory' };
             default:
               return item;
           }
@@ -127,69 +131,75 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
     return items.map((item) => {
       const hasChildren = menuItems.some(child => child.parent_menu_id === item.menu_id);
       const isExpanded = expandedItems.has(item.menu_id);
-      const isActive = pathname === item.menu_url;
       const childItems = menuItems.filter(child => child.parent_menu_id === item.menu_id);
       const icon = getIcon(item.icon);
+      const isActive = pathname === item.menu_url;
 
       return (
         <div key={item.menu_id} className="relative">
-          <Link
-            href={item.menu_url}
-            className={cn(
-              "flex items-center px-3 py-2 rounded-md transition-colors",
-              isActive 
-                ? 'bg-primary text-white' 
-                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700',
-              isCollapsed ? "justify-center" : "",
-              level > 0 && !isCollapsed && "ml-4"
-            )}
-            onClick={(e) => {
-              if (hasChildren && !isCollapsed) {
-                e.preventDefault();
-                toggleExpand(item.menu_id);
-              }
-            }}
-            onMouseEnter={(e) => {
-              if (isCollapsed) {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setHoveredItem({ item, children: childItems, level, rect });
-              }
-            }}
-            onMouseLeave={(e) => {
-              const relatedTarget = e.relatedTarget as HTMLElement;
-              if (!relatedTarget?.closest('[data-hover-menu]')) {
-                setHoveredItem(null);
-              }
-            }}
-          >
-            <span className={cn(
-              "flex items-center w-full",
-              isCollapsed ? "justify-center" : ""
-            )}>
-              {icon && (
-                <span className={cn(
-                  "inline-flex",
-                  !isCollapsed && "mr-2"
-                )}>
-                  {icon}
-                </span>
-              )}
-              {hasChildren && !isCollapsed && (
+          <div className={cn(
+            "flex items-center px-3 py-2 rounded-md transition-colors",
+            isCollapsed ? "justify-center" : "",
+            level > 0 && !isCollapsed && "ml-4"
+          )}>
+            {/* Collapse arrow button */}
+            {hasChildren && !isCollapsed && (
+              <button
+                onClick={() => toggleExpand(item.menu_id)}
+                className="mr-2"
+              >
                 <Icons.chevronRight
                   className={cn(
-                    "h-4 w-4 transition-transform mr-2",
+                    "h-4 w-4 transition-transform",
                     isExpanded && "transform rotate-90"
                   )}
                 />
+              </button>
+            )}
+            
+            {/* Menu item link */}
+            <Link
+              href={item.menu_url}
+              className={cn(
+                "flex items-center flex-1",
+                isActive 
+                  ? 'text-primary' 
+                  : 'text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary',
               )}
+              onMouseEnter={(e) => {
+                if (isCollapsed) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHoveredItem({ item, children: childItems, level, rect });
+                }
+              }}
+              onMouseLeave={(e) => {
+                const relatedTarget = e.relatedTarget as HTMLElement | null;
+                if (!relatedTarget || !('closest' in relatedTarget) || !relatedTarget.closest('[data-hover-menu]')) {
+                  setHoveredItem(null);
+                }
+              }}
+            >
               <span className={cn(
-                isCollapsed ? "sr-only" : "flex-1",
-                "whitespace-nowrap"
+                "flex items-center w-full",
+                isCollapsed ? "justify-center" : ""
               )}>
-                {item.menu_name}
+                {icon && (
+                  <span className={cn(
+                    "inline-flex",
+                    !isCollapsed && "mr-2"
+                  )}>
+                    {icon}
+                  </span>
+                )}
+                <span className={cn(
+                  isCollapsed ? "sr-only" : "flex-1",
+                  "whitespace-nowrap"
+                )}>
+                  {item.menu_name}
+                </span>
               </span>
-            </span>
-          </Link>
+            </Link>
+          </div>
 
           {!isCollapsed && hasChildren && isExpanded && (
             <div className="ml-4 mt-1">
@@ -300,6 +310,11 @@ export default function SideMenu({ isCollapsed, onCollapse }: SideMenuProps) {
     </>
   );
 }
+
+
+
+
+
 
 
 

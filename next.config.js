@@ -2,20 +2,36 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  async rewrites() {
-    return [
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
+  },
+  images: {
+    domains: ['localhost'],
+    unoptimized: true,
+    remotePatterns: [
       {
-        source: '/api/:path*',
-        destination: process.env.NODE_ENV === 'production'
-          ? `${process.env.POSTGREST_URL}/:path*`  // Production PostgREST URL
-          : 'http://localhost:3000/:path*'  // Development PostgREST URL
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/images/**',
       }
-    ]
-  }
+    ],
+  },
+  outputFileTracingRoot: process.cwd(),
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/@swc/core-linux-x64-gnu',
+      'node_modules/@swc/core-linux-x64-musl',
+      'node_modules/@esbuild/linux-x64',
+    ],
+  },
+  distDir: '.next',
+  poweredByHeader: false,
+  generateEtags: true,
+  assetPrefix: ''
 }
 
 module.exports = nextConfig
-
-
-
 

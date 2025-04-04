@@ -13,6 +13,7 @@ services:
       - NODE_ENV=production
       - PORT=9000
       # Use the PostgREST service name from the network inspection
+      # This is a server-side only environment variable
       - POSTGREST_URL=http://postgrest-postgrest-1:3000
     networks:
       - postgrest_default

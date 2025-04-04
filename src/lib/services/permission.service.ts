@@ -1,4 +1,5 @@
 import { Permission } from '@/types/role-permission';
+import { BaseService } from '@/lib/services/base.service';
 
 export class PermissionService extends BaseService {
     private static readonly endpoint = '/permissions';

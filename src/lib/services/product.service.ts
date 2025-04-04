@@ -24,22 +24,17 @@ export class ProductService extends BaseService {
         return response.data;
     }
 
+    // Updated delete method to match BaseService signature
+    static async deleteProduct(productId: number) {
+        const endpoint = `${this.endpoint}?product_id=eq.${productId}`;
+        return this.delete(endpoint);
+    }
+
     static async update(productId: number, data: Partial<Product>) {
-        const response = await this.patch<Product>(
-            `${this.endpoint}?product_id=eq.${productId}`,
-            data
-        );
+        const response = await this.patch<Product>(`${this.endpoint}?product_id=eq.${productId}`, data);
         return response.data;
     }
-
-    static async delete(productId: number) {
-        return this.delete(`${this.endpoint}?product_id=eq.${productId}`);
-    }
-
-    static async checkSkuExists(sku: string): Promise<boolean> {
-        const response = await this.get<Product[]>(`${this.endpoint}?sku=eq.${sku}`);
-        return response.data.length > 0;
-    }
 }
+
 
 

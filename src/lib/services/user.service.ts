@@ -1,3 +1,6 @@
+import { BaseService } from './base.service';
+import { User } from '@/types';
+
 export class UserService extends BaseService {
     private static readonly endpoint = '/users';
 
@@ -26,3 +29,4 @@ export class UserService extends BaseService {
         return this.delete(`${this.endpoint}?user_id=eq.${userId}`);
     }
 }
+

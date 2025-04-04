@@ -1,5 +1,6 @@
 import {
   MapPin,
+  Boxes,
 } from 'lucide-react';
 
 export const Icons = {
@@ -167,5 +168,8 @@ export const Icons = {
     </svg>
   ),
   mapPin: MapPin,
+  boxes: Boxes,
 };
+
+
 

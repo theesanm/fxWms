@@ -6,6 +6,7 @@ import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { getImageUrl } from '@/utils/imageUtils';
 
 interface ProductImage {
     product_id: number;
@@ -26,6 +27,17 @@ export default function ProductImagesPage() {
         fetchProductDetails();
         fetchProductImages();
     }, []);
+
+    // Debug image URLs
+    useEffect(() => {
+        if (images.length > 0) {
+            console.log('Images loaded:', images);
+            images.forEach(image => {
+                console.log('Image URL before getImageUrl:', image.image_url);
+                console.log('Image URL after getImageUrl:', getImageUrl(image.image_url));
+            });
+        }
+    }, [images]);
 
     const fetchProductDetails = async () => {
         try {
@@ -68,7 +80,9 @@ export default function ProductImagesPage() {
 
             if (!uploadResponse.ok) throw new Error('Failed to upload file');
 
-            const { filePath } = await uploadResponse.json();
+            const uploadResult = await uploadResponse.json();
+            const imageUrl = uploadResult.filename;
+            console.log('Received image URL from upload API:', imageUrl);
 
             // Check if this is the first image
             const shouldBePrimary = images.length === 0;
@@ -77,14 +91,14 @@ export default function ProductImagesPage() {
                 // If this is the first image, set it as primary
                 await api.post('/product_images', {
                     product_id: Number(params.id),
-                    image_url: filePath,
+                    image_url: imageUrl,
                     is_primary: true,
                 });
             } else {
                 // If not the first image, set it as non-primary
                 await api.post('/product_images', {
                     product_id: Number(params.id),
-                    image_url: filePath,
+                    image_url: imageUrl,
                     is_primary: false,
                 });
             }
@@ -164,8 +178,8 @@ export default function ProductImagesPage() {
                             dark:file:text-gray-100
                             dark:file:hover:bg-primary/70"
                     />
-                    <Button 
-                        onClick={handleUpload} 
+                    <Button
+                        onClick={handleUpload}
                         disabled={!selectedFile || isUploading}
                         className="dark:hover:bg-primary/80"
                     >
@@ -175,15 +189,18 @@ export default function ProductImagesPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {images.sort((a, b) => (a.is_primary ? -1 : 1)).map((image) => (
+                {images.sort((a, _) => (a.is_primary ? -1 : 1)).map((image) => (
                     <div key={image.image_url} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                         <div className="relative aspect-square mb-4">
+                            {/* Log the image URL for debugging */}
                             <Image
-                                src={image.image_url}
+                                src={getImageUrl(image.image_url)}
                                 alt={`Product image${image.is_primary ? ' (Primary)' : ''}`}
-                                fill
+                                width={300}
+                                height={300}
                                 className="object-cover rounded-md"
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                priority={image.is_primary}
+                                unoptimized
                             />
                             {image.is_primary && (
                                 <div className="absolute top-2 right-2 bg-primary text-white dark:bg-primary/80 dark:text-gray-100 px-2 py-1 rounded-md text-sm">
@@ -199,8 +216,8 @@ export default function ProductImagesPage() {
                                 disabled={image.is_primary}
                                 className={cn(
                                     "dark:text-gray-200",
-                                    image.is_primary 
-                                        ? "dark:bg-primary/80 dark:hover:bg-primary/70" 
+                                    image.is_primary
+                                        ? "dark:bg-primary/80 dark:hover:bg-primary/70"
                                         : "dark:border-gray-600 dark:hover:bg-gray-700"
                                 )}
                             >
@@ -228,6 +245,8 @@ export default function ProductImagesPage() {
         </div>
     );
 }
+
+
 
 
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import Link from 'next/link';
-import api from '@/lib/api';
+import api from '@/lib/postgrest';
 import { toast } from 'sonner';
 
 interface MenuItem {

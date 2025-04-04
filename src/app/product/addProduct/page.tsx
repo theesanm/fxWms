@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/postgrest';
 import Image from 'next/image';
 import { Textarea } from "@/components/ui/textarea";
+import { getImageUrl } from '@/utils/imageUtils';
 
 // UI Components
 import {
@@ -25,7 +26,7 @@ import {
     TooltipProvider,
     TooltipContent
 } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -180,7 +181,7 @@ export default function ProductPage() {
                 ].filter(Boolean)
             },
             details: {
-                hasError: Boolean(formErrors.category || formErrors.season || formErrors.gender || 
+                hasError: Boolean(formErrors.category || formErrors.season || formErrors.gender ||
                                 formErrors.collection || formErrors.material || formErrors.style),
                 messages: [
                     formErrors.category?.message,
@@ -192,7 +193,7 @@ export default function ProductPage() {
                 ].filter(Boolean)
             },
             dimensions: {
-                hasError: Boolean(formErrors.dimensions?.width || formErrors.dimensions?.height || 
+                hasError: Boolean(formErrors.dimensions?.width || formErrors.dimensions?.height ||
                                 formErrors.dimensions?.length || formErrors.unit_weight),
                 messages: [
                     formErrors.dimensions?.width?.message,
@@ -255,7 +256,7 @@ export default function ProductPage() {
         };
 
         setSelectedProduct(normalizedProduct);
-        
+
         // Reset form with all product data
         reset({
             sku: normalizedProduct.sku,
@@ -356,6 +357,17 @@ export default function ProductPage() {
         }
     }, [selectedProduct?.product_id]);
 
+    // Debug image URLs
+    useEffect(() => {
+        if (productImages.length > 0) {
+            console.log('Product images loaded:', productImages);
+            productImages.forEach(image => {
+                console.log('Image URL before getImageUrl:', image.image_url);
+                console.log('Image URL after getImageUrl:', getImageUrl(image.image_url));
+            });
+        }
+    }, [productImages]);
+
     // Form submission (Create/Update)
     const onSubmit = async (data: ProductFormData) => {
         if (activeTab === 'metadata' || activeTab === 'images') {
@@ -388,11 +400,11 @@ export default function ProductPage() {
 
                     // Set the selected product
                     setSelectedProduct(createdProduct);
-                    
+
                     if (searchResults.length > 0) {
                         setSearchResults(prev => [...prev, createdProduct]);
                     }
-                    
+
                     toast.success('Product created successfully');
                     setActiveTab('metadata'); // Automatically move to metadata tab
 
@@ -433,9 +445,9 @@ export default function ProductPage() {
                 }
             }
         } catch (error: any) {
-            const errorMessage = error.response?.data?.message || 
-                               error.response?.data?.detail || 
-                               error.message || 
+            const errorMessage = error.response?.data?.message ||
+                               error.response?.data?.detail ||
+                               error.message ||
                                'Failed to save product';
             toast.error('Error saving product', {
                 description: errorMessage
@@ -458,7 +470,7 @@ export default function ProductPage() {
     const handleAddMetadata = async () => {
         const meta_key = metadataForm.watch('meta_key');
         const meta_value = metadataForm.watch('meta_value');
-        
+
         if (!meta_key || !meta_value) {
             toast.error('Both key and value are required');
             return;
@@ -473,7 +485,7 @@ export default function ProductPage() {
                         product_id: `eq.${selectedProduct?.product_id}`
                     }
                 });
-                
+
                 if (productResponse.data?.[0]) {
                     setSelectedProduct(productResponse.data[0]);
                 } else {
@@ -493,7 +505,7 @@ export default function ProductPage() {
                 return;
             }
             const productId = selectedProduct.product_id;
-            
+
             // Add new metadata
             const newMetadata = {
                 product_id: productId,
@@ -508,17 +520,17 @@ export default function ProductPage() {
             });
 
             const addedMetadata = Array.isArray(response.data) ? response.data[0] : response.data;
-            
+
             // Update local state
             setMetadata(prev => [...prev, addedMetadata]);
             metadataForm.reset();
-            
+
             toast.success('Metadata added successfully');
         } catch (error: any) {
             console.error('Error adding metadata:', error);
-            const errorMessage = error.response?.data?.message || 
-                               error.response?.data?.detail || 
-                               error.message || 
+            const errorMessage = error.response?.data?.message ||
+                               error.response?.data?.detail ||
+                               error.message ||
                                'Failed to add metadata';
             toast.error(`Error: ${errorMessage}`);
         }
@@ -543,14 +555,14 @@ export default function ProductPage() {
 
             // Update local state
             setMetadata(prevMetadata => prevMetadata.filter(item => item.meta_id !== metaId));
-            
+
             // Reset metadata form
             metadataForm.reset();
 
             toast.success('Metadata deleted successfully');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.message || 
-                               error.response?.data?.detail || 
+            const errorMessage = error.response?.data?.message ||
+                               error.response?.data?.detail ||
                                'Failed to delete metadata';
             toast.error(errorMessage);
             console.error('Delete metadata error:', error);
@@ -564,7 +576,10 @@ export default function ProductPage() {
     };
 
     const handleUpload = async () => {
-        if (!selectedFile || !selectedProduct?.product_id) return;
+        if (!selectedFile || !selectedProduct?.product_id) {
+            toast.error('Please select a file and ensure product is created first');
+            return;
+        }
 
         setIsUploading(true);
         try {
@@ -576,28 +591,35 @@ export default function ProductPage() {
                 body: formData,
             });
 
-            if (!uploadResponse.ok) throw new Error('Failed to upload file');
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload file');
+            }
 
-            const { filePath } = await uploadResponse.json();
+            const uploadResult = await uploadResponse.json();
 
-            await api.post('/product_images', {
-                product_id: selectedProduct.product_id,
-                image_url: filePath,
+            // Store only the relative path in the database
+            const imageUrl = uploadResult.filename; // This should be like '/images/filename.png'
+            console.log('Received image URL from upload API:', imageUrl);
+
+            const imageData = {
+                product_id: Number(selectedProduct.product_id),
+                image_url: imageUrl,
                 is_primary: productImages.length === 0
-            });
+            };
 
-            const newImage = {
-                product_id: selectedProduct.product_id,
-                image_url: filePath,
-                is_primary: productImages.length === 0,
+            await api.post('/product_images', imageData);
+
+            const newImage: ProductImage = {
+                ...imageData,
                 created_at: new Date().toISOString()
             };
 
-            setProductImages([...productImages, newImage]);
+            setProductImages(prev => [...prev, newImage]);
             setSelectedFile(null);
             toast.success('Image uploaded successfully');
-        } catch (error) {
-            toast.error('Failed to upload image');
+        } catch (error: any) {
+            console.error('Upload error details:', error);
+            toast.error('Failed to upload image: ' + (error.response?.data?.message || error.message));
         } finally {
             setIsUploading(false);
         }
@@ -637,10 +659,10 @@ export default function ProductPage() {
 
     const handleEditMetadata = async () => {
         if (!editingMetadata) return;
-        
+
         const meta_key = metadataForm.watch('meta_key');
         const meta_value = metadataForm.watch('meta_value');
-        
+
         if (!meta_key || !meta_value) {
             toast.error('Both key and value are required');
             return;
@@ -661,22 +683,22 @@ export default function ProductPage() {
             });
 
             // Update local state
-            setMetadata(prevMetadata => 
-                prevMetadata.map(item => 
-                    item.meta_id === editingMetadata.meta_id 
+            setMetadata(prevMetadata =>
+                prevMetadata.map(item =>
+                    item.meta_id === editingMetadata.meta_id
                         ? { ...item, meta_key, meta_value }
                         : item
                 )
             );
-            
+
             // Reset form and editing state
             metadataForm.reset();
             setEditingMetadata(null);
-            
+
             toast.success('Metadata updated successfully');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.message || 
-                               error.response?.data?.detail || 
+            const errorMessage = error.response?.data?.message ||
+                               error.response?.data?.detail ||
                                'Failed to update metadata';
             toast.error(errorMessage);
             console.error('Update metadata error:', error);
@@ -758,7 +780,7 @@ export default function ProductPage() {
                         placeholder="Search products..."
                         className="max-w-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
                     />
-                    <Button 
+                    <Button
                         onClick={handleSearch}
                         disabled={isSearching}
                     >
@@ -783,7 +805,7 @@ export default function ProductPage() {
                 {searchResults.length > 0 && (
                     <div className="space-y-2">
                         {searchResults.map((product) => (
-                            <div 
+                            <div
                                 key={product.product_id}
                                 className="flex items-center justify-between p-4 border rounded-lg"
                             >
@@ -816,23 +838,23 @@ export default function ProductPage() {
                 <h2 className="text-xl font-semibold mb-6">
                     {selectedProduct ? 'Edit Product' : 'Add New Product'}
                 </h2>
-                
+
                 <form onSubmit={handleFormSubmit}>
                     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                        <TabsList className="grid w-full" 
+                        <TabsList className="grid w-full"
                                  style={{ gridTemplateColumns: `repeat(${selectedProduct ? 5 : 3}, 1fr)` }}>
                             <TooltipProvider>
                                 {(selectedProduct ? tabsForExistingProduct : tabsForNewProduct).map((tab) => (
                                     <Tooltip key={tab.id}>
                                         <TooltipTrigger asChild>
-                                            <TabsTrigger 
+                                            <TabsTrigger
                                                 value={tab.id}
                                                 className={cn(
                                                     getTabsWithErrors()[tab.id as TabId]?.hasError && "border-red-500"
                                                 )}
                                             >
                                                 {tab.label}
-                                                {getTabsWithErrors()[tab.id as TabId]?.hasError && 
+                                                {getTabsWithErrors()[tab.id as TabId]?.hasError &&
                                                     <span className="ml-2 text-red-500">*</span>
                                                 }
                                             </TabsTrigger>
@@ -914,11 +936,11 @@ export default function ProductPage() {
                                         <label className="block text-sm font-medium mb-1 dark:text-gray-200">
                                             Category *
                                         </label>
-                                        <Select 
+                                        <Select
                                             onValueChange={(value) => handleSelectChange(value, 'category')}
                                             value={watch('category')}
                                         >
-                                            <SelectTrigger 
+                                            <SelectTrigger
                                                 className={cn(
                                                     "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
                                                     errors.category && "border-red-500"
@@ -942,11 +964,11 @@ export default function ProductPage() {
                                         <label className="block text-sm font-medium mb-1 dark:text-gray-200">
                                             Season *
                                         </label>
-                                        <Select 
+                                        <Select
                                             onValueChange={(value) => handleSelectChange(value, 'season')}
                                             value={watch('season')}
                                         >
-                                            <SelectTrigger 
+                                            <SelectTrigger
                                                 className={cn(
                                                     "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
                                                     errors.season && "border-red-500"
@@ -971,11 +993,11 @@ export default function ProductPage() {
                                         <label className="block text-sm font-medium mb-1 dark:text-gray-200">
                                             Gender *
                                         </label>
-                                        <Select 
+                                        <Select
                                             onValueChange={(value) => handleSelectChange(value, 'gender')}
                                             value={watch('gender')}
                                         >
-                                            <SelectTrigger 
+                                            <SelectTrigger
                                                 className={cn(
                                                     "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
                                                     errors.gender && "border-red-500"
@@ -998,11 +1020,11 @@ export default function ProductPage() {
                                         <label className="block text-sm font-medium mb-1 dark:text-gray-200">
                                             Collection *
                                         </label>
-                                        <Select 
+                                        <Select
                                             onValueChange={(value) => handleSelectChange(value, 'collection')}
                                             value={watch('collection')}
                                         >
-                                            <SelectTrigger 
+                                            <SelectTrigger
                                                 className={cn(
                                                     "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
                                                     errors.collection && "border-red-500"
@@ -1026,11 +1048,11 @@ export default function ProductPage() {
                                         <label className="block text-sm font-medium mb-1 dark:text-gray-200">
                                             Material *
                                         </label>
-                                        <Select 
+                                        <Select
                                             onValueChange={(value) => handleSelectChange(value, 'material')}
                                             value={watch('material')}
                                         >
-                                            <SelectTrigger 
+                                            <SelectTrigger
                                                 className={cn(
                                                     "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
                                                     errors.material && "border-red-500"
@@ -1055,11 +1077,11 @@ export default function ProductPage() {
                                         <label className="block text-sm font-medium mb-1 dark:text-gray-200">
                                             Style *
                                         </label>
-                                        <Select 
+                                        <Select
                                             onValueChange={(value) => handleSelectChange(value, 'style')}
                                             value={watch('style')}
                                         >
-                                            <SelectTrigger 
+                                            <SelectTrigger
                                                 className={cn(
                                                     "dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200",
                                                     errors.style && "border-red-500"
@@ -1195,7 +1217,7 @@ export default function ProductPage() {
                                                 />
                                             </div>
                                             <div className="flex items-end">
-                                                <Button 
+                                                <Button
                                                     type="button"
                                                     onClick={editingMetadata ? handleEditMetadata : handleAddMetadata}
                                                     className="mb-1"
@@ -1203,7 +1225,7 @@ export default function ProductPage() {
                                                     {editingMetadata ? 'Update' : 'Add'} Metadata
                                                 </Button>
                                                 {editingMetadata && (
-                                                    <Button 
+                                                    <Button
                                                         type="button"
                                                         variant="outline"
                                                         onClick={() => {
@@ -1239,7 +1261,9 @@ export default function ProductPage() {
                                                             variant="danger"
                                                             size="sm"
                                                             onClick={() => item.meta_id && handleDeleteMetadata(item.meta_id)}
-                                                            className="dark:bg-red-900 dark:hover:bg-red-800"
+                                                            className={cn(
+                                                                "dark:bg-red-900 dark:hover:bg-red-800"
+                                                            )}
                                                         >
                                                             Delete
                                                         </Button>
@@ -1259,7 +1283,7 @@ export default function ProductPage() {
                                                 onChange={handleFileSelect}
                                                 className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                             />
-                                            <Button 
+                                            <Button
                                                 onClick={handleUpload}
                                                 disabled={!selectedFile || isUploading}
                                                 className="dark:bg-gray-700"
@@ -1272,12 +1296,14 @@ export default function ProductPage() {
                                         <div className="grid grid-cols-3 gap-4 mt-4">
                                             {productImages.map((image, index) => (
                                                 <div key={index} className="relative border dark:border-gray-600 rounded p-2">
+                                                    {/* Product image */}
                                                     <Image
-                                                        src={image.image_url}
+                                                        src={getImageUrl(image.image_url)}
                                                         alt="Product image"
                                                         width={200}
                                                         height={200}
                                                         className="object-cover rounded"
+                                                        unoptimized
                                                     />
                                                     <div className="flex justify-between mt-2">
                                                         <Button
@@ -1293,7 +1319,9 @@ export default function ProductPage() {
                                                             size="sm"
                                                             variant="danger"
                                                             onClick={() => handleDeleteImage(image.image_url)}
-                                                            className="dark:bg-red-900 dark:hover:bg-red-800"
+                                                            className={cn(
+                                                                "dark:bg-red-900 dark:hover:bg-red-800"
+                                                            )}
                                                         >
                                                             Delete
                                                         </Button>

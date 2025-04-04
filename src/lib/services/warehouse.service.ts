@@ -1,4 +1,5 @@
 import { Warehouse } from '@/types/warehouse';
+import { BaseService } from './base.service';
 
 export class WarehouseService extends BaseService {
     private static readonly endpoint = '/warehouses';
@@ -20,10 +21,5 @@ export class WarehouseService extends BaseService {
     static async createWarehouse(data: Omit<Warehouse, 'warehouse_id'>) {
         const response = await this.post<Warehouse>(this.endpoint, data);
         return response.data;
-    }
-
-    static async deleteWarehouse(warehouseId: number) {
-        const filter = this.buildFilter('warehouse_id', 'eq', warehouseId);
-        return this.delete(`${this.endpoint}?${filter}`);
     }
 }
